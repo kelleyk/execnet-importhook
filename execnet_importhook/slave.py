@@ -34,14 +34,16 @@ class ExecnetFinder(object):
         # # (This will turn into a call back to the execnet master.)
         # result = get_source(fullname)
 
-        self.ch.send(fullname)
+        self.ch.send((fullname, path, target))
         result = self.ch.receive()
         
         if result is None:
             return None
-
+        
         # TODO: Do any of the other arguments that ModuleSpec takes matter?
-        return importlib._bootstrap.ModuleSpec(fullname, ExecnetSourceLoader(*result))
+        source_path, source_bytes, is_package = result
+        loader = ExecnetSourceLoader(source_path, source_bytes)
+        return importlib._bootstrap.ModuleSpec(fullname, loader, is_package=is_package)
 
     def install(self):
         assert self not in sys.meta_path

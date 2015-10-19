@@ -19,22 +19,36 @@ def get_source(fullname, package=None):
 
     source_path = spec.loader.get_filename()
     source_bytes = spec.loader.get_data(source_path)
-    return (source_path, source_bytes)
+    is_package = loader_is_package(spec.loader, fullname)
+    return (source_path, source_bytes, is_package)
+
+
+def loader_is_package(loader, name):
+    # Excerpt from importlib._bootstrap.spec_from_loader().
+
+    if hasattr(loader, 'is_package'):
+        try:
+            is_package = loader.is_package(name)
+        except ImportError:
+            is_package = None  # aka, undefined
+    else:
+        # the default
+        is_package = False
+
+    return is_package
 
 
 def handle_import_ch(ch, item):
     if item is ENDMARKER:
-        # print('import_ch ENDS')
         return
     
-    # print('import_ch got item: {}'.format(item))
-        
+    fullname, path, target = item
+    
     try:
-        result = get_source(item)
+        result = get_source(fullname)
     except:
         raise
     else:
-        # print('sending result; is none? {}'.format(result is None))
         ch.send(result)
 
 
