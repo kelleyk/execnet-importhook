@@ -1,0 +1,43 @@
+- How loading works:
+  https://github.com/python/cpython/blob/3.5/Lib/importlib/_bootstrap_external.py
+
+  - _LoaderBasics.exec_module() calls get_code(); there are two main implementations of that function (in SourceLoader,
+    SourcelessLoader).
+
+  - SourcelessLoader.get_code() loads only from existing bytecode; SourceLoader.get_code() tries to read cached
+    bytecode, but will load and compile source if that doesn't work.
+
+  - get_code()'s only argument is fullname (the fully-qualified module name).  It searches on the filesystem for a
+    particular source file to load with get_filename().
+
+    In SourceLoader, get_filename() just returns self.path.  This is because the actual "finding" is done by the Finder
+    that constructs and returns the SourceLoader to the import system.
+
+  - In SourceLoader.get_code(), loading code happens through get_data(source_path) and then source_to_code().
+
+  - get_code() returns a code object.
+
+  - Then, exec_module() executes the code object wiht the newly-created module object's (initially empty) __dict__ as
+    the global scope (is "global scope" the right term?).
+
+- Other notes:
+
+  - SourceLoader is abstract (?).  When you call importlib.util.find_spec(), you actually get a SourceFileLoader (which
+    is a subclass of SourceLoader).
+
+  - From experimenting with importlib.util.find_spec() in Python 3.5:
+    - If the module can't be found, find_spec() returns None.
+    - You get a spec containing a SourceFileLoader if source is present, even if bytecode is also present.
+    - If *only* bytecode is present, you get a spec, but spec.loader is None.
+
+
+- Our plan of attack:
+
+  - We need a function that tries to get_data() on the execnet master, to see if the source of the module is loadable
+    (and to get the source if it is).
+
+    Most similar existing functionality is importlib.util.find_spec(), which takes a module name and returns a spec that
+    includes a loader (e.g. a SourceFileLoader).
+
+  - Then we need the loader on the execnet slave to turn that into code (bytecode compilation) and pick up the process
+    above from that point.
