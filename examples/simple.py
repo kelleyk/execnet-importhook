@@ -4,7 +4,9 @@ import sys
 import threading
 from functools import partial
 
+import pytest
 import execnet
+
 import execnet_importhook
 
 
@@ -25,7 +27,7 @@ def execnet_slave_main(channel):
         channel.send('baz.hello = {}'.format(baz.hello))
 
         
-def execnet_master_main(install_hook=True, callback=None, slave_main=execnet_slave_main):
+def execnet_master_main(install_hook=True, callback=None, gw=None, slave_main=execnet_slave_main):
     callback = callback or handle_ch
     exit_event.clear()  # to allow multiple test cases to run despite our gross global state
 
@@ -37,7 +39,7 @@ def execnet_master_main(install_hook=True, callback=None, slave_main=execnet_sla
 
     # Create another Python interpreter to be our slave.  (This could just as well be any other remote interpreter that
     # execnet supports.)
-    gw = execnet.makegateway()
+    gw = gw or execnet.makegateway()
 
     # This is all of the setup that we need to do!  This creates a channel to the gateway (and inserts itself into the
     # slave's import machinery) as well as a callback to service requests on this side.
@@ -60,47 +62,56 @@ def handle_ch(ch, item):
     print('received: {}'.format(item))
 
 
+@pytest.mark.parametrize(('gw_spec',), [
+    ('popen//python=python3.5',),
+    ('popen//python=python3.4',),
+    # ('popen//python=python3.3',),  # fails with 'ExecnetFinder' object has no attribute 'find_module()''
+    # ('popen//python=python3.2',),  # fails with 'AttributeError: find_module()'
+    # --
+    # ('popen//python=python2.7',),  # has a completely different import system
+])
 class TestsImportHook(object):
-    def _run(self, slave_main, install_hook=True):
+    def _run(self, slave_main, install_hook=True, gw_spec=None):
         msgs = []
         
         def handler(ch, item):
             if item is ENDMARKER:
                 return exit_event.set()
             msgs.append(item)
-            
-        execnet_master_main(install_hook=install_hook, callback=handler, slave_main=slave_main)
+
+        gw = execnet.makegateway(gw_spec)
+        execnet_master_main(install_hook=install_hook, callback=handler, slave_main=slave_main, gw=gw)
         return msgs
         
-    def test_with_importhook(self):
-        msgs = self._run(install_hook=True, slave_main=execnet_slave_main)
+    def test_with_importhook(self, gw_spec):
+        msgs = self._run(install_hook=True, slave_main=execnet_slave_main, gw_spec=gw_spec)
         assert msgs == [
             'hello from the slave!',
             'baz.hello = world',
         ]
         
-    def test_without_importhook(self):
-        msgs = self._run(install_hook=False, slave_main=execnet_slave_main)
+    def test_without_importhook(self, gw_spec):
+        msgs = self._run(install_hook=False, slave_main=execnet_slave_main, gw_spec=gw_spec)
         assert msgs == [
             'hello from the slave!',
             'unable to import baz',
         ]
 
-    def test_subpackage(self):
+    def test_subpackage(self, gw_spec):
         def slave_main(channel):
             import baz
             channel.send('ok')
             
-        msgs = self._run(slave_main=slave_main)
+        msgs = self._run(slave_main=slave_main, gw_spec=gw_spec)
         assert msgs == ['ok']
 
-    def test_relative_import(self):
+    def test_relative_import(self, gw_spec):
         def slave_main(channel):
             # The 'baz.slurp' module contains a relative import of 'baz.barf'.
             import baz.slurp
             channel.send('ok')
     
-        msgs = self._run(slave_main=slave_main)
+        msgs = self._run(slave_main=slave_main, gw_spec=gw_spec)
         assert msgs == ['ok']
         
 

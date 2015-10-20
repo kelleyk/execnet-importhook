@@ -1,9 +1,14 @@
 # -*- coding: utf-8; -*-
 
-import time
+import sys
 import importlib
 import importlib.util
 from functools import partial
+
+if sys.version_info < (3, 5):  # 3.4
+    importlib_SourceFileLoader = importlib._bootstrap.SourceFileLoader
+else:  # 3.5
+    importlib_SourceFileLoader = importlib._bootstrap_external.SourceFileLoader
 
 ENDMARKER = object()
 
@@ -57,7 +62,11 @@ def install_import_hook(gateway):
     import_ch = gateway.remote_exec(importhook_slave)
 
     # Avoid a race in setting up the hook on the remote (slave) side by waiting for it to confirm that it's ready.
-    data = import_ch.receive()
-    assert data == 'ready'
+    status = import_ch.receive()
+    if 'err' in status:
+        raise RuntimeError('Slave reported error during setup: {} ({})'.format(
+            status['err'], {k: v for k, v in status.items() if k != 'err'}))
+    elif status != {'ready': True}:
+        raise ValueError('Unexpected response from slave.')
     
     import_ch.setcallback(partial(handle_import_ch, import_ch), ENDMARKER)

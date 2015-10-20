@@ -1,4 +1,4 @@
-- How loading works:
+- How loading works (Python 3.5):
   https://github.com/python/cpython/blob/3.5/Lib/importlib/_bootstrap_external.py
 
   - _LoaderBasics.exec_module() calls get_code(); there are two main implementations of that function (in SourceLoader,
@@ -41,3 +41,10 @@
 
   - Then we need the loader on the execnet slave to turn that into code (bytecode compilation) and pick up the process
     above from that point.
+
+
+- Differences in older Python versions:
+
+  - python3.4
+
+    There's no importlib._bootstrap_external.

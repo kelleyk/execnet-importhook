@@ -1,12 +1,22 @@
 #!/usr/bin/env python3.5
 
 import sys
+PY2 = sys.version_info < (3,)
+
 import time
 import importlib
-import importlib.util
+if PY2:
+    pass
+else:
+    import importlib.util
 
+if sys.version_info < (3, 5):  # 3.4
+    importlib_SourceLoader = importlib._bootstrap.SourceLoader
+else:  # 3.5
+    importlib_SourceLoader = importlib._bootstrap_external.SourceLoader
 
-class ExecnetSourceLoader(importlib._bootstrap_external.SourceLoader):
+    
+class ExecnetSourceLoader(importlib_SourceLoader):
     def __init__(self, source_path, source_bytes):
         self.source_path = source_path
         self.source_bytes = source_bytes
@@ -51,7 +61,12 @@ class ExecnetFinder(object):
 
         
 if __name__ == '__channelexec__':
-    ExecnetFinder(channel).install()
-    channel.send('ready')
-    while True:
-        time.sleep(0)
+    if PY2:
+        channel.send({'err': 'unsupported-python', 'version': sys.version_info})
+    else:
+        ExecnetFinder(channel).install()
+        channel.send({'ready': True})
+        while True:
+            time.sleep(0)
+
+        
