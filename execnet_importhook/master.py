@@ -3,6 +3,7 @@
 import sys
 import importlib
 import importlib.util
+import zipimport
 from functools import partial
 
 if sys.version_info < (3, 5):  # 3.4
@@ -18,14 +19,26 @@ def get_source(fullname, package=None):
     # necessary if the module name is absolute.
     spec = importlib.util.find_spec(fullname)
 
-    if spec is None or spec.loader is None or \
-       not isinstance(spec.loader, importlib._bootstrap_external.SourceFileLoader):
+    print('** get_source(fullname={})'.format(fullname))
+    
+    if spec is None or spec.loader is None:
         return None
 
-    source_path = spec.loader.get_filename()
-    source_bytes = spec.loader.get_data(source_path)
-    is_package = loader_is_package(spec.loader, fullname)
-    return (source_path, source_bytes, is_package)
+    if isinstance(spec.loader, (
+            importlib._bootstrap_external.SourceFileLoader,
+            zipimport.zipimporter,
+    )):
+        source_path = spec.loader.get_filename(fullname)
+        source_bytes = spec.loader.get_data(source_path)
+        is_package = loader_is_package(spec.loader, fullname)
+        return (source_path, source_bytes, is_package)
+        
+    print('** unable to provide import \'{}\' to slave: spec.loader={}'.format(
+        fullname,
+        None if spec is None else spec.loader))
+    import pdb; pdb.set_trace()
+    return None
+
 
 
 def loader_is_package(loader, name):

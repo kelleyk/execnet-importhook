@@ -10,10 +10,8 @@
 
 # Limitations and warnings
 
-- Only tested with cpython.  Only tested with Python 3.5.  Definitely does not support Python 2.x right now.
-
-  The implementation is built on `importlib`, which barely exists in Python 2.7.  Support is probably possible, but
-  would take some tinkering.
+- Irritatingly, you can't import execnet itself through execnet_importhook.  execnet uses apipkg, a library that
+  replaces the original module object loaded into sys.modules with something that has no __spec__.  This breaks stuff.
 
 - If you use `gateway.remote_exec()` to execute a module, that module cannot use relative imports.  (When `execnet`
   moves the module to the remote interpreter, it doesn't set the package's name correctly, so Python will barf with

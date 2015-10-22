@@ -26,6 +26,16 @@ class ExecnetSourceLoader(importlib_SourceLoader):
     def get_code(self, fullname):
         code_object = self.source_to_code(self.source_bytes, self.source_path)
         return code_object
+
+    # FileLoader provides get_filename() and get_data().  For some reason, we have trouble
+    # using the 'traceback' module on the slave without these two functions implemented.
+    # TODO: Add test coverage for the 'traceback' module on the slave.
+    
+    def get_filename(self, fullname):
+        return self.source_path
+    
+    def get_data(self, path):
+        return self.source_bytes
         
 
 class ExecnetFinder(object):

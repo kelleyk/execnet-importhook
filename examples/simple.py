@@ -113,6 +113,15 @@ class TestsImportHook(object):
     
         msgs = self._run(slave_main=slave_main, gw_spec=gw_spec)
         assert msgs == ['ok']
+
+    def test_zipimport(self, gw_spec):
+        def slave_main(channel):
+            # When you 'pip install' intensional, you get an egg (zip).
+            import intensional
+            channel.send('ok')
+    
+        msgs = self._run(slave_main=slave_main, gw_spec=gw_spec)
+        assert msgs == ['ok']
         
 
 if __name__ == '__main__':
