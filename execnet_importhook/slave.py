@@ -63,7 +63,10 @@ class ExecnetFinder(object):
         # TODO: Do any of the other arguments that ModuleSpec takes matter?
         source_path, source_bytes, is_package = result
         loader = ExecnetSourceLoader(source_path, source_bytes)
-        return importlib._bootstrap.ModuleSpec(fullname, loader, is_package=is_package)
+
+        spec = importlib._bootstrap.ModuleSpec(fullname, loader, origin=source_path, is_package=is_package)
+        spec.has_location = True  # XXX: constructor doesn't take this arg
+        return spec
 
     def install(self):
         assert self not in sys.meta_path

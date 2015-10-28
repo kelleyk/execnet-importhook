@@ -115,13 +115,80 @@ class TestsImportHook(object):
         assert msgs == ['ok']
 
     def test_zipimport(self, gw_spec):
+        # Sanity check: make sure this is actually being installed as an egg.
+        import fooegg
+        assert fooegg.__file__.endswith('.egg/fooegg/__init__.py')
+        
         def slave_main(channel):
             # When you 'pip install' intensional, you get an egg (zip).
-            import intensional
+            import fooegg
             channel.send('ok')
     
         msgs = self._run(slave_main=slave_main, gw_spec=gw_spec)
         assert msgs == ['ok']
+        
+    def test_module_fileattr(self, gw_spec):
+        """Test that the __file__ attribute is correctly set for imports from .py files."""
+        
+        def slave_main(channel):
+            import foo
+            channel.send(getattr(foo, '__file__', None))
+        
+        msgs = self._run(install_hook=True, slave_main=slave_main, gw_spec=gw_spec)
+        assert len(msgs) == 1
+        assert msgs[0] is not None and msgs[0].endswith('/foo.py')
+        
+    def test_package_fileattr(self, gw_spec):
+        """Test that the __file__ attribute is correctly set for imports from packages.
+
+        (That is, directories containing __init__.py files)."""
+        
+        def slave_main(channel):
+            import baz
+            channel.send(getattr(baz, '__file__', None))
+        
+        msgs = self._run(install_hook=True, slave_main=slave_main, gw_spec=gw_spec)
+        assert len(msgs) == 1
+        assert msgs[0] is not None and msgs[0].endswith('/baz/__init__.py')
+
+    def test_zipimport_fileattr(self, gw_spec):
+        """Test that the __file__ attribute is correctly set for imports from eggs."""
+        
+        def slave_main(channel):
+            # When you 'pip install' intensional, you get an egg (zip).
+            import fooegg
+            channel.send(getattr(fooegg, '__file__', None))
+    
+        msgs = self._run(slave_main=slave_main, gw_spec=gw_spec)
+        assert len(msgs) == 1
+        assert msgs[0] is not None and msgs[0].endswith('.egg/fooegg/__init__.py')
+        
+    def test_module_specialattrs(self, gw_spec):
+        def slave_main(channel):
+            import foo
+            for name in ('__spec__', '__loader__', '__cached__'):
+                channel.send(hasattr(foo, name))
+        
+        msgs = self._run(install_hook=True, slave_main=slave_main, gw_spec=gw_spec)
+        assert msgs == [True, True, True]
+        
+    def test_package_specialattrs(self, gw_spec):
+        def slave_main(channel):
+            import baz
+            for name in ('__spec__', '__loader__', '__cached__'):
+                channel.send(hasattr(baz, name))
+        
+        msgs = self._run(install_hook=True, slave_main=slave_main, gw_spec=gw_spec)
+        assert msgs == [True, True, True]
+        
+    def test_zipimport_specialattrs(self, gw_spec):
+        def slave_main(channel):
+            import fooegg
+            for name in ('__spec__', '__loader__', '__cached__'):
+                channel.send(hasattr(fooegg, name))
+        
+        msgs = self._run(install_hook=True, slave_main=slave_main, gw_spec=gw_spec)
+        assert msgs == [True, True, True]
         
 
 if __name__ == '__main__':
