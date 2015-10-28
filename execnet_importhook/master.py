@@ -1,5 +1,6 @@
 # -*- coding: utf-8; -*-
 
+import os
 import sys
 import importlib
 import importlib.util
@@ -19,7 +20,8 @@ def get_source(fullname, package=None):
     # necessary if the module name is absolute.
     spec = importlib.util.find_spec(fullname)
 
-    print('** get_source(fullname={})'.format(fullname))
+    if os.getenv('EXECNET_IMPORTHOOK_TRACE'):
+        print('** get_source(fullname={})'.format(fullname))
     
     if spec is None or spec.loader is None:
         return None
@@ -33,12 +35,12 @@ def get_source(fullname, package=None):
         is_package = loader_is_package(spec.loader, fullname)
         return (source_path, source_bytes, is_package)
         
-    print('** unable to provide import \'{}\' to slave: spec.loader={}'.format(
-        fullname,
-        None if spec is None else spec.loader))
-    import pdb; pdb.set_trace()
+    if os.getenv('EXECNET_IMPORTHOOK_TRACE'):
+        print('** unable to provide import \'{}\' to slave: spec.loader={}'.format(
+            fullname,
+            None if spec is None else spec.loader))
+        # import pdb; pdb.set_trace()
     return None
-
 
 
 def loader_is_package(loader, name):
