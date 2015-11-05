@@ -17,6 +17,13 @@ eventually.)
 The current implementation doesn't change the source of execnet itself at all; there's just an extra call right after
 you create the gateway.
 
+## Usage
+
+All you need to do is insert a single call after you create a gateway.
+
+    gw = execnet.makegateway()
+    execnet_importhook.install_import_hook(gw)
+
 ## Supported versions of Python
 
 - cpython only (others untested).
