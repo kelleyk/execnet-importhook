@@ -1,11 +1,11 @@
 # execnet-importhook
 
-This mechanism allows execnet slaves to import modules only installed on the master.  (This library itself, of course,
-need only be installed on the master.)
+This library implements a mechanism that allows execnet slaves to import modules only installed on the master.  (In
+keeping with that theme, this library itself only needs to be installed on the master.)
 
-This library inserts itself into the import machinery on the remote/slave side.  When an import is about to fail
-(because the module is not present on the slave), the slave asks the master if the master can find the module.  If it
-can, the master sends the slave the module's source; the slave can then successfully import it.
+When an import is about to fail (because the module is not present on the slave), the slave asks the master if the
+master can find the module.  If it can, the master sends the slave the module's source; the slave can then successfully
+import it.
 
 Right now this feature works with both absolute and relative imports.  It only works with pure-Python modules (not with
 extension modules), though adding support for those (in situations where the master and the slave are similar enough to
