@@ -27,7 +27,7 @@ def get_source(fullname, package=None):
         return None
 
     if isinstance(spec.loader, (
-            importlib._bootstrap_external.SourceFileLoader,
+            importlib_SourceFileLoader,
             zipimport.zipimporter,
     )):
         source_path = spec.loader.get_filename(fullname)
